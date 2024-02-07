@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void save(User user) {
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
@@ -38,10 +40,10 @@ public class UserServiceImpl implements UserService {
         authority.setUsername(user.getUsername());
         authority.setAuthority("ROLE_USER"); // new user take role USER
         authorityRepository.save(authority);
-        System.out.println("Сохраняем пользователя: " + user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {

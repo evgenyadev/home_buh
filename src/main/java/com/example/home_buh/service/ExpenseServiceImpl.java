@@ -8,6 +8,7 @@ import com.example.home_buh.model.dto.TotalExpenseDTO;
 import com.example.home_buh.repository.ExpenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
+    @Transactional
     public ExpenseDTO createExpense(User user, ExpenseDTO expenseDTO) {
         Expense expense = new Expense(user, expenseDTO.getAmount(), expenseDTO.getDate(), expenseDTO.getCategory());
         Expense savedExpense = expenseRepository.save(expense);
@@ -35,6 +37,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
+    @Transactional
     public boolean deleteExpense(User user, Long expenseId) {
         Optional<Expense> optionalExpense = expenseRepository.findById(expenseId);
         if (optionalExpense.isPresent()) {
@@ -48,12 +51,14 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExpenseDTO> getAllExpensesForUser(User user) {
         List<Expense> expenses = expenseRepository.findAllByUserId(user.getId());
         return expenseMapper.toExpenseDTOs(expenses);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TotalExpenseDTO getTotalExpensesBetweenDatesForUser(User user, LocalDate startDate, LocalDate endDate) {
         LocalDateTime startTimestamp = startDate.atStartOfDay();
         LocalDateTime endTimestamp = endDate.atTime(23, 59, 59);
@@ -71,6 +76,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TotalExpenseDTO getTotalExpensesBetweenDatesByCategoryForUser(User user, LocalDate startDate, LocalDate endDate, String category) {
         LocalDateTime startTimestamp = startDate.atStartOfDay();
         LocalDateTime endTimestamp = endDate.atTime(23, 59, 59);
