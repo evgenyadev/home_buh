@@ -1,19 +1,21 @@
 package com.example.home_buh.service;
 
-import com.example.home_buh.model.Expense;
+import com.example.home_buh.model.User;
+import com.example.home_buh.model.dto.ExpenseDTO;
+import com.example.home_buh.model.dto.TotalExpenseDTO;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface ExpenseService {
 
-    Expense createExpense(Expense expense);
+    ExpenseDTO createExpense(User user, ExpenseDTO expenseDTO);
 
-    boolean deleteExpense(Long expenseId);
+    boolean deleteExpense(User user, Long expenseId);
 
-    List<Expense> getAllExpensesForUser();
+    List<ExpenseDTO> getAllExpensesForUser(User user);
 
-    String getTotalExpensesBetweenDatesForUser(LocalDate startDate, LocalDate endDate);
+    TotalExpenseDTO getTotalExpensesBetweenDatesForUser(User user, LocalDate startDate, LocalDate endDate);
 
-    String getTotalExpensesBetweenDatesByCategoryForUser(LocalDate startDate, LocalDate endDate, String category);
+    TotalExpenseDTO getTotalExpensesBetweenDatesByCategoryForUser(User user, LocalDate startDate, LocalDate endDate, String category);
 }

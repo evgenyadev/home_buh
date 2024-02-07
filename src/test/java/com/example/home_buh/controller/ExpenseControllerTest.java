@@ -1,12 +1,12 @@
 package com.example.home_buh.controller;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.example.home_buh.controller.ExpenseController;
-import com.example.home_buh.model.Expense;
 import com.example.home_buh.model.User;
+import com.example.home_buh.model.dto.ExpenseDTO;
+import com.example.home_buh.model.dto.TotalExpenseDTO;
 import com.example.home_buh.service.ExpenseService;
+import com.example.home_buh.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -17,15 +17,18 @@ import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-public class ExpenseControllerTest {
+class ExpenseControllerTest {
 
     @Mock
     private ExpenseService expenseService;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private ExpenseController expenseController;
@@ -36,121 +39,209 @@ public class ExpenseControllerTest {
     }
 
     @Test
-    public void testCreateExpense_Success() {
+    void testCreateExpense_Success() {
         // Mocking
-        Expense expense = new Expense();
-        when(expenseService.createExpense(expense)).thenReturn(expense);
+        ExpenseDTO expenseDTO = new ExpenseDTO();
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(new User());
+        // Устанавливаем, что при вызове expenseService.createExpense() будет возвращаться не null
+        when(expenseService.createExpense(any(User.class), eq(expenseDTO))).thenReturn(expenseDTO);
 
-        // Вызов метода контроллера для создания расхода
-        ResponseEntity<String> responseEntity = expenseController.createExpense(expense);
+        // Вызываем метод контроллера для создания расхода
+        ResponseEntity<String> responseEntity = expenseController.createExpense(expenseDTO);
 
-        // Проверка успешного создания расхода
+        // Проверяем успешное создание расхода
         assertEquals(HttpStatus.CREATED, responseEntity.getStatusCode());
         assertEquals("Expense created successfully", responseEntity.getBody());
     }
 
     @Test
-    public void testDeleteExpense_Success() {
+    void testCreateExpense_Failure() {
+        // Mocking
+        ExpenseDTO expenseDTO = new ExpenseDTO();
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(new User());
+        // Устанавливаем, что при вызове expenseService.createExpense() будет возвращаться null
+        when(expenseService.createExpense(any(User.class), eq(expenseDTO))).thenReturn(null);
+
+        // Вызываем метод контроллера для создания расхода
+        ResponseEntity<String> responseEntity = expenseController.createExpense(expenseDTO);
+
+        // Проверяем, что расход не был создан успешно
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
+        assertEquals("Failed to create expense", responseEntity.getBody());
+    }
+
+    @Test
+    void testCreateExpense_Unauthorized() {
+        // Mocking
+        ExpenseDTO expenseDTO = new ExpenseDTO();
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться null
+        when(userService.getCurrentUser()).thenReturn(null);
+
+        // Вызываем метод контроллера для создания расхода
+        ResponseEntity<String> responseEntity = expenseController.createExpense(expenseDTO);
+
+        // Проверяем, что пользователь не аутентифицирован
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertEquals("User not authenticated", responseEntity.getBody());
+    }
+
+    @Test
+    void testDeleteExpense_Success() {
         // Mocking
         Long expenseId = 1L;
-        when(expenseService.deleteExpense(expenseId)).thenReturn(true);
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(new User());
+        // Устанавливаем, что при вызове expenseService.deleteExpense() будет возвращаться true
+        when(expenseService.deleteExpense(any(User.class), eq(expenseId))).thenReturn(true);
 
-        // Создание объекта контроллера для тестирования
-        ExpenseController controller = new ExpenseController(expenseService);
+        // Вызываем метод контроллера для удаления расхода
+        ResponseEntity<String> responseEntity = expenseController.deleteExpense(expenseId);
 
-        // Вызов метода контроллера для удаления расхода
-        ResponseEntity<String> responseEntity = controller.deleteExpense(expenseId);
-
-        // Проверка успешного удаления расхода
+        // Проверяем успешное удаление расхода
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         assertEquals("Expense deleted successfully", responseEntity.getBody());
     }
 
     @Test
-    public void testGetAllExpensesForUser() {
-        // Создаем тестируемый контроллер и передаем ему заглушку сервиса
-        ExpenseController controller = new ExpenseController(expenseService);
+    void testDeleteExpense_NotFound() {
+        // Mocking
+        Long expenseId = 1L;
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(new User());
+        // Устанавливаем, что при вызове expenseService.deleteExpense() будет возвращаться false
+        when(expenseService.deleteExpense(any(User.class), eq(expenseId))).thenReturn(false);
 
-        // Создаем список тестовых расходов
-        List<Expense> expectedExpenses = new ArrayList<>();
-        expectedExpenses.add(new Expense());
-        expectedExpenses.add(new Expense());
+        // Вызываем метод контроллера для удаления расхода
+        ResponseEntity<String> responseEntity = expenseController.deleteExpense(expenseId);
 
-        // Устанавливаем поведение заглушки: при вызове getAllExpensesForUser() возвращается список тестовых расходов
-        when(expenseService.getAllExpensesForUser()).thenReturn(expectedExpenses);
-
-        // Вызываем метод контроллера, который мы хотим протестировать
-        ResponseEntity<?> responseEntity = controller.getAllExpensesForUser();
-
-        // Проверяем, что ответ не равен null
-        assertNotNull(responseEntity);
-
-        // Проверяем, что код статуса ответа - HttpStatus.OK
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-
-        // Проверяем, что данные в ответе соответствуют ожидаемым данным
-        List<Expense> actualExpenses = (List<Expense>) ((HashMap) responseEntity.getBody()).get("expenses");
-        assertEquals(expectedExpenses.size(), actualExpenses.size());
+        // Проверяем, что расход не найден или не принадлежит пользователю
+        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+        assertEquals("Expense not found or does not belong to the user", responseEntity.getBody());
     }
 
     @Test
-    void testGetExpensesBetweenDates() {
+    void testDeleteExpense_Unauthorized() {
+        // Mocking
+        Long expenseId = 1L;
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться null
+        when(userService.getCurrentUser()).thenReturn(null);
+
+        // Вызываем метод контроллера для удаления расхода
+        ResponseEntity<String> responseEntity = expenseController.deleteExpense(expenseId);
+
+        // Проверяем, что пользователь не аутентифицирован
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertEquals("User not authenticated", responseEntity.getBody());
+    }
+
+    @Test
+    void testGetAllExpensesForUser_Success() {
+        // Mocking
+        User currentUser = new User();
+        List<ExpenseDTO> expectedExpenses = new ArrayList<>();
+        expectedExpenses.add(new ExpenseDTO());
+        expectedExpenses.add(new ExpenseDTO());
+
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        // Устанавливаем, что при вызове expenseService.getAllExpensesForUser() будет возвращаться список тестовых расходов
+        when(expenseService.getAllExpensesForUser(currentUser)).thenReturn(expectedExpenses);
+
+        // Вызываем метод контроллера для получения всех расходов пользователя
+        ResponseEntity<Map<String, List<ExpenseDTO>>> responseEntity = expenseController.getAllExpensesForUser();
+
+        // Проверяем успешное получение всех расходов пользователя
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(expectedExpenses, Objects.requireNonNull(responseEntity.getBody()).get("expenses"));
+    }
+
+    @Test
+    void testGetAllExpensesForUser_Unauthorized() {
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться null
+        when(userService.getCurrentUser()).thenReturn(null);
+
+        // Вызываем метод контроллера для получения всех расходов пользователя
+        ResponseEntity<Map<String, List<ExpenseDTO>>> responseEntity = expenseController.getAllExpensesForUser();
+
+        // Проверяем, что пользователь не аутентифицирован
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertNull(responseEntity.getBody());
+    }
+
+    @Test
+    void testGetExpensesBetweenDates_Success() {
         // Устанавливаем тестовые данные
         LocalDate startDate = LocalDate.of(2024, 1, 1);
         LocalDate endDate = LocalDate.of(2024, 1, 5);
+        User currentUser = new User();
+        TotalExpenseDTO totalExpenseDTO = new TotalExpenseDTO();
+        totalExpenseDTO.setTotalAmount(new BigDecimal("30.00"));
+        List<ExpenseDTO> expenses = new ArrayList<>();
+        totalExpenseDTO.setExpenses(expenses);
 
-        List<Expense> expenses = new ArrayList<>();
-        User user = new User();
-        // Создание объектов Expense для записей внутри диапазона дат
-        expenses.add(new Expense(user, new BigDecimal("10.00"), LocalDateTime.of(2024, 1, 2, 0, 0), "Food"));
-        expenses.add(new Expense(user, new BigDecimal("20.00"), LocalDateTime.of(2024, 1, 3, 0, 0), "Car"));
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        // Устанавливаем, что при вызове expenseService.getTotalExpensesBetweenDatesForUser() будет возвращаться totalExpenseDTO
+        when(expenseService.getTotalExpensesBetweenDatesForUser(currentUser, startDate, endDate)).thenReturn(totalExpenseDTO);
 
-        // Создание объектов Expense для записей за пределами диапазона дат
-        expenses.add(new Expense(user, new BigDecimal("30.00"), LocalDateTime.of(2024, 1, 6, 0, 0), "Entertainment"));
-        expenses.add(new Expense(user, new BigDecimal("40.00"), LocalDateTime.of(2024, 1, 7, 0, 0), "Cafe"));
+        // Вызываем метод контроллера для получения расходов между датами
+        ResponseEntity<TotalExpenseDTO> responseEntity = expenseController.getExpensesBetweenDates(startDate, endDate);
 
-
-        when(expenseService.getTotalExpensesBetweenDatesForUser(startDate, endDate))
-                .thenReturn("{\"totalAmount\": 30.00}");
-
-        // Вызываем метод контроллера
-        ResponseEntity<String> responseEntity = expenseController.getExpensesBetweenDates(startDate, endDate);
-
-        // Проверяем, что ответ не null
-        assertNotNull(responseEntity);
-        // Проверяем, что ответ имеет статус ОК
+        // Проверяем успешное получение расходов между датами
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        // Проверяем, что ответ содержит ожидаемую строку
-        assertEquals("{\"totalAmount\": 30.00}", responseEntity.getBody());
+        assertEquals(totalExpenseDTO, responseEntity.getBody());
     }
 
     @Test
-    void testGetExpensesBetweenDatesByCategory() {
+    void testGetExpensesBetweenDates_Unauthorized() {
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться null
+        when(userService.getCurrentUser()).thenReturn(null);
+
+        // Вызываем метод контроллера для получения расходов между датами
+        ResponseEntity<TotalExpenseDTO> responseEntity = expenseController.getExpensesBetweenDates(LocalDate.now(), LocalDate.now());
+
+        // Проверяем, что пользователь не аутентифицирован
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertNull(responseEntity.getBody());
+    }
+
+    @Test
+    void testGetExpensesBetweenDatesByCategory_Success() {
         // Устанавливаем тестовые данные
         LocalDate startDate = LocalDate.of(2024, 1, 1);
         LocalDate endDate = LocalDate.of(2024, 1, 5);
         String category = "Food";
+        User currentUser = new User();
+        TotalExpenseDTO totalExpenseDTO = new TotalExpenseDTO();
+        totalExpenseDTO.setTotalAmount(new BigDecimal("30.00"));
+        List<ExpenseDTO> expenses = new ArrayList<>();
+        totalExpenseDTO.setExpenses(expenses);
 
-        // Устанавливаем сумму расходов в этой категории
-        String totalAmount = "30.00";
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться не null
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        // Устанавливаем, что при вызове expenseService.getTotalExpensesBetweenDatesByCategoryForUser() будет возвращаться totalExpenseDTO
+        when(expenseService.getTotalExpensesBetweenDatesByCategoryForUser(currentUser, startDate, endDate, category)).thenReturn(totalExpenseDTO);
 
-        // Устанавливаем поведение заглушки: при вызове getTotalExpensesBetweenDatesByCategoryForUser() возвращается строка с суммой расходов
-        when(expenseService.getTotalExpensesBetweenDatesByCategoryForUser(startDate, endDate, category))
-                .thenReturn("{\"totalAmount\": \"" + totalAmount + "\"}");
+        // Вызываем метод контроллера для получения расходов между датами по категории
+        ResponseEntity<TotalExpenseDTO> responseEntity = expenseController.getExpensesBetweenDatesByCategory(startDate, endDate, category);
 
-        // Вызываем метод контроллера
-        ResponseEntity<String> responseEntity = expenseController.getExpensesBetweenDatesByCategory(startDate, endDate, category);
-
-        // Проверяем, что ответ не null
-        assertNotNull(responseEntity);
-        // Проверяем, что ответ имеет статус ОК
+        // Проверяем успешное получение расходов между датами по категории
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-
-        // Преобразуем фактическое значение в строку JSON
-        String expectedResponse = "{\"totalAmount\": \"" + totalAmount + "\"}";
-
-        // Проверяем, что ответ содержит ожидаемую строку
-        assertEquals(expectedResponse, responseEntity.getBody());
+        assertEquals(totalExpenseDTO, responseEntity.getBody());
     }
 
+    @Test
+    void testGetExpensesBetweenDatesByCategory_Unauthorized() {
+        // Устанавливаем, что при вызове userService.getCurrentUser() будет возвращаться null
+        when(userService.getCurrentUser()).thenReturn(null);
+
+        // Вызываем метод контроллера для получения расходов между датами по категории
+        ResponseEntity<TotalExpenseDTO> responseEntity = expenseController.getExpensesBetweenDatesByCategory(LocalDate.now(), LocalDate.now(), "Food");
+
+        // Проверяем, что пользователь не аутентифицирован
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertNull(responseEntity.getBody());
+    }
 }

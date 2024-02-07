@@ -1,11 +1,13 @@
 package com.example.home_buh.service;
 
-import com.example.home_buh.model.Expense;
+import com.example.home_buh.model.dto.ExpenseDTO;
 import com.itextpdf.io.source.ByteArrayOutputStream;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,7 +15,9 @@ import java.util.List;
 @Service
 public class PdfReportService {
 
-    public byte[] generatePdfReport(List<Expense> expenses) {
+    private static final Logger logger = LoggerFactory.getLogger(PdfReportService.class);
+
+    public byte[] generatePdfReport(List<ExpenseDTO> expenses) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         try {
@@ -29,7 +33,7 @@ public class PdfReportService {
             table.addCell("Date");
             table.addCell("Category");
 
-            for (Expense expense : expenses) {
+            for (ExpenseDTO expense : expenses) {
                 table.addCell(String.valueOf(expense.getId()));
                 table.addCell(String.valueOf(expense.getAmount()));
                 table.addCell(expense.getDate().toString());
@@ -39,7 +43,7 @@ public class PdfReportService {
             document.add(table);
             document.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("An error occurred", e);
         }
 
         return outputStream.toByteArray();

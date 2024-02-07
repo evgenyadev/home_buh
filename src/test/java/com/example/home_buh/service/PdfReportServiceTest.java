@@ -1,13 +1,15 @@
 package com.example.home_buh.service;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
+import com.example.home_buh.mapper.ExpenseMapper;
 import com.example.home_buh.model.Expense;
 import com.example.home_buh.model.User;
-import com.example.home_buh.service.PdfReportService;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.layout.Document;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -17,10 +19,17 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-public class PdfReportServiceTest {
+class PdfReportServiceTest {
+
+    private ExpenseMapper expenseMapper;
+
+    @BeforeEach
+    void setUp() {
+        expenseMapper = mock(ExpenseMapper.class);
+    }
 
     @Test
-    public void testGeneratePdfReport() throws IOException {
+    void testGeneratePdfReport() throws IOException {
         // Создаем пользователя
         User user = new User();
         user.setId(1L); // Присваиваем id пользователя
@@ -35,7 +44,7 @@ public class PdfReportServiceTest {
         PdfReportService pdfReportService = new PdfReportService();
 
         // Генерируем PDF-отчет
-        byte[] pdfBytes = pdfReportService.generatePdfReport(expenses);
+        byte[] pdfBytes = pdfReportService.generatePdfReport(expenseMapper.toExpenseDTOs(expenses));
 
         // Проверяем, что PDF-отчет не пустой
         assertNotNull(pdfBytes);
